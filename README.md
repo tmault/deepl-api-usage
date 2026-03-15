@@ -31,7 +31,7 @@ You can also install this through a personal Homebrew tap.
 Once both repos are pushed to GitHub:
 
 - source repo: `tmault/deepl-api-usage`
-- tap repo: `tmault/homebrew`
+- tap repo: `tmault/homebrew-tap`
 
 install with:
 
