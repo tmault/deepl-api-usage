@@ -37,13 +37,13 @@ install with:
 
 ```bash
 brew tap tmault/tap
-brew install --HEAD deepl-api-usage
+brew install --head deepl-api-usage
 ```
 
 Or in one command:
 
 ```bash
-brew install --HEAD tmault/tap/deepl-api-usage
+brew install --head tmault/tap/deepl-api-usage
 ```
 
 Right now the tap formula is set up as a `head` build from the Git repository. After you publish a tagged release, you can switch it to a stable tarball with a pinned `sha256`.
