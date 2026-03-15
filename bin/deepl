@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/deepl"
+CONFIG_FILE="$CONFIG_DIR/config"
+
+print_help() {
+  cat <<'EOF'
+Usage:
+  deepl usage
+  deepl auth set <api-key>
+  deepl auth show
+  deepl auth clear
+
+Environment:
+  DEEPL_API_KEY   Used for requests and takes precedence over saved config.
+EOF
+}
+
+load_saved_key() {
+  if [[ -f "$CONFIG_FILE" ]]; then
+    # shellcheck disable=SC1090
+    source "$CONFIG_FILE"
+  fi
+}
+
+get_api_key() {
+  if [[ -n "${DEEPL_API_KEY:-}" ]]; then
+    printf '%s\n' "$DEEPL_API_KEY"
+    return 0
+  fi
+
+  load_saved_key
+  if [[ -n "${DEEPL_API_KEY:-}" ]]; then
+    printf '%s\n' "$DEEPL_API_KEY"
+    return 0
+  fi
+
+  return 1
+}
+
+cmd_usage() {
+  local api_key
+  if ! api_key=$(get_api_key); then
+    echo "No DeepL API key found. Set DEEPL_API_KEY or run: deepl auth set <api-key>" >&2
+    exit 1
+  fi
+
+  local response
+  response=$(curl -fsS https://api-free.deepl.com/v2/usage \
+    -H "Authorization: DeepL-Auth-Key $api_key")
+
+  printf '%s' "$response" | python3 -c '
+import json
+import sys
+
+data = json.loads(sys.stdin.read())
+used = int(data.get("character_count", 0))
+limit = int(data.get("character_limit", 0))
+remaining = max(limit - used, 0)
+pct = (used / limit * 100) if limit else 0
+
+print(f"Used: {used} / {limit} characters ({pct:.2f}%)")
+print(f"Remaining: {remaining}")
+'
+}
+
+cmd_auth_set() {
+  local api_key=${1:-}
+  if [[ -z "$api_key" ]]; then
+    echo "Usage: deepl auth set <api-key>" >&2
+    exit 1
+  fi
+
+  mkdir -p "$CONFIG_DIR"
+  chmod 700 "$CONFIG_DIR"
+  printf 'DEEPL_API_KEY=%s\n' "$api_key" >"$CONFIG_FILE"
+  chmod 600 "$CONFIG_FILE"
+  echo "Saved API key to $CONFIG_FILE"
+}
+
+cmd_auth_show() {
+  load_saved_key
+  if [[ -z "${DEEPL_API_KEY:-}" ]]; then
+    echo "No saved API key found." >&2
+    exit 1
+  fi
+  printf '%s\n' "$DEEPL_API_KEY"
+}
+
+cmd_auth_clear() {
+  if [[ -f "$CONFIG_FILE" ]]; then
+    rm -f "$CONFIG_FILE"
+    echo "Removed saved API key from $CONFIG_FILE"
+  else
+    echo "No saved API key found."
+  fi
+}
+
+main() {
+  local command=${1:-help}
+  case "$command" in
+    usage)
+      shift
+      cmd_usage "$@"
+      ;;
+    auth)
+      local subcommand=${2:-}
+      case "$subcommand" in
+        set)
+          shift 2
+          cmd_auth_set "$@"
+          ;;
+        show)
+          cmd_auth_show
+          ;;
+        clear)
+          cmd_auth_clear
+          ;;
+        *)
+          print_help
+          exit 1
+          ;;
+      esac
+      ;;
+    help|-h|--help)
+      print_help
+      ;;
+    *)
+      print_help
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
