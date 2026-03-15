@@ -24,6 +24,30 @@ Or use it directly from the repo:
 ./bin/deepl usage
 ```
 
+## Homebrew
+
+You can also install this through a personal Homebrew tap.
+
+Once both repos are pushed to GitHub:
+
+- source repo: `tmault/deepl-api-usage`
+- tap repo: `tmault/homebrew`
+
+install with:
+
+```bash
+brew tap tmault/tap
+brew install --HEAD deepl-api-usage
+```
+
+Or in one command:
+
+```bash
+brew install --HEAD tmault/tap/deepl-api-usage
+```
+
+Right now the tap formula is set up as a `head` build from the Git repository. After you publish a tagged release, you can switch it to a stable tarball with a pinned `sha256`.
+
 ## Auth
 
 You can provide your API key in either of these ways:
